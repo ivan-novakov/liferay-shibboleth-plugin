@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<!DOCTYPE hook PUBLIC "-//Liferay//DTD Hook 6.1.0//EN" "http://www.liferay.com/dtd/liferay-hook_6_1_0.dtd">
+
+<hook>
+    <portal-properties>portal.properties</portal-properties>
+    <language-properties>language.properties</language-properties>
+    <custom-jsp-dir>/WEB-INF/jsps</custom-jsp-dir>
+    <servlet-filter>
+        <servlet-filter-name>shibboleth</servlet-filter-name>
+        <servlet-filter-impl>com.liferay.portal.servlet.filters.sso.shibboleth.ShibbolethFilter</servlet-filter-impl>
+    </servlet-filter>
+    <servlet-filter-mapping>
+        <servlet-filter-name>shibboleth</servlet-filter-name>
+        <after-filter>Auto Login Filter</after-filter>
+        <url-pattern>/c/portal/login</url-pattern>
+        <url-pattern>/c/portal/logout</url-pattern>
+        <dispatcher>FORWARD</dispatcher>
+        <dispatcher>REQUEST</dispatcher>
+    </servlet-filter-mapping>
+</hook>
