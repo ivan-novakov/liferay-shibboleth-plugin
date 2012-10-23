@@ -2,14 +2,14 @@
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>shibbolethplugin.googlecode.com</groupId>
+    <groupId>com.github.ivan-novakov.liferay-shibboleth-plugin</groupId>
     <artifactId>liferay-shibboleth-plugin</artifactId>
     <packaging>war</packaging>
     <name>liferay-shibboleth-plugin Hook</name>
     <url>http://code.google.com/p/liferay-shibboleth-plugin/</url>
-    <version>1.0-SNAPSHOT</version>
+    <version>1.1</version>
     <properties>
-        <liferay.auto.deploy.dir>/opt/portal/deploy</liferay.auto.deploy.dir>
+        <liferay.auto.deploy.dir>/opt/lr/deploy</liferay.auto.deploy.dir>
         <liferay.version>6.1.0</liferay.version>
     </properties>
     <build>

@@ -14,6 +14,7 @@ import javax.servlet.http.HttpSession;
 
 /**
  * @author Romeo Sheshi
+ * @author Ivan Novakov <ivan.novakov@debug.cz>
  */
 public class ShibbolethFilter extends BaseFilter {
 
@@ -55,19 +56,30 @@ public class ShibbolethFilter extends BaseFilter {
 		} else {
 			String login = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_LOGIN);
 			if (Validator.isNull(login)) {
-				// String loginHeader =
-				// request.getHeader(Util.getHeaderName(companyId));
-				_log.info("Checking for attribute [" + Util.getHeaderName(companyId) + "]");
-				String loginHeader = (String) request.getAttribute(Util.getHeaderName(companyId));
-				if (Validator.isNotNull(loginHeader)) {
-					_log.info("Found value for attribute [" + Util.getHeaderName(companyId) + "]: '" + loginHeader + "'");
-					session.setAttribute(ShibbolethPropsKeys.SHIBBOLETH_LOGIN, loginHeader);
-				} else {
-					getLog().error("Header name=" + Util.getHeaderName(companyId) + " not present in request");
-				}
+				processHeader(Util.getHeaderName(companyId), request, ShibbolethPropsKeys.SHIBBOLETH_LOGIN, true);
+				processHeader(Util.getEmailHeaderName(companyId), request, ShibbolethPropsKeys.SHIBBOLETH_HEADER_EMAIL,
+						false);
+				processHeader(Util.getFirstnameHeaderName(companyId), request,
+						ShibbolethPropsKeys.SHIBBOLETH_HEADER_FIRSTNAME, false);
+				processHeader(Util.getSurnameHeaderName(companyId), request,
+						ShibbolethPropsKeys.SHIBBOLETH_HEADER_SURNAME, false);
 			}
 		}
 		processFilter(ShibbolethFilter.class, request, response, filterChain);
+	}
+
+	protected void processHeader(String headerName, HttpServletRequest request, String sessionIndex, boolean logError)
+			throws Exception {
+		HttpSession session = request.getSession();
+		String headerValue = (String) request.getAttribute(headerName);
+
+		_log.info("Header [" + headerName + "]: " + headerValue);
+
+		if (Validator.isNotNull(headerValue)) {
+			session.setAttribute(sessionIndex, headerValue);
+		} else if (logError == true) {
+			_log.error("Required header [" + headerName + "] not found");
+		}
 	}
 
 	private static Log _log = LogFactoryUtil.getLog(ShibbolethFilter.class);

@@ -5,6 +5,11 @@ import com.liferay.portal.kernel.util.PrefsPropsUtil;
 import com.liferay.portal.kernel.util.PropsKeys;
 import com.liferay.portal.model.CompanyConstants;
 
+/**
+ * 
+ * @author Romeo Sheshi
+ * @author Ivan Novakov <ivan.novakov@debug.cz>
+ */
 public final class Util {
     private Util() {
     }
@@ -39,6 +44,38 @@ public final class Util {
         return GetterUtil.getString(
                 getValue(companyId, ShibbolethPropsKeys.SHIBBOLETH_HEADER),
                 ShibbolethPropsValues.SHIBBOLETH_HEADER);
+    }
+    
+    public static String getEmailHeaderName(long companyId) throws Exception {
+        return GetterUtil.getString(
+                getValue(companyId, ShibbolethPropsKeys.SHIBBOLETH_HEADER_EMAIL),
+                ShibbolethPropsValues.SHIBBOLETH_HEADER_EMAIL);
+    }
+    
+    public static String getFirstnameHeaderName(long companyId) throws Exception {
+        return GetterUtil.getString(
+                getValue(companyId, ShibbolethPropsKeys.SHIBBOLETH_HEADER_FIRSTNAME),
+                ShibbolethPropsValues.SHIBBOLETH_HEADER_FIRSTNAME);
+    }
+    
+    public static String getSurnameHeaderName(long companyId) throws Exception {
+        return GetterUtil.getString(
+                getValue(companyId, ShibbolethPropsKeys.SHIBBOLETH_HEADER_SURNAME),
+                ShibbolethPropsValues.SHIBBOLETH_HEADER_SURNAME);
+    }
+    
+    public static boolean autoCreateUser(long companyId) throws Exception {
+        return GetterUtil.get(
+                getValue(companyId,
+                        ShibbolethPropsKeys.SHIBBOLETH_USER_AUTO_CREATE),
+                ShibbolethPropsValues.SHIBBOLETH_USER_AUTO_CREATE);
+    }
+    
+    public static boolean autoUpdateUser(long companyId) throws Exception {
+        return GetterUtil.get(
+                getValue(companyId,
+                        ShibbolethPropsKeys.SHIBBOLETH_USER_AUTO_UPDATE),
+                ShibbolethPropsValues.SHIBBOLETH_USER_AUTO_UPDATE);
     }
 
     public static String getAuthType(long companyId) throws Exception {
