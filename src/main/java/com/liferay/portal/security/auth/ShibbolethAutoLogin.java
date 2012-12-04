@@ -7,32 +7,24 @@ import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.CompanyConstants;
 import com.liferay.portal.model.User;
-//import com.liferay.portal.model.Contact;
-//import com.liferay.portal.model.Group;
-//import com.liferay.portal.model.ClassName;
 import com.liferay.portal.security.ldap.PortalLDAPImporterUtil;
 import com.liferay.portal.service.UserLocalServiceUtil;
-//import com.liferay.portal.service.ContactLocalServiceUtil;
 import com.liferay.portal.service.ServiceContext;
-//import com.liferay.portal.service.ClassNameLocalServiceUtil;
-//import com.liferay.portal.service.GroupLocalServiceUtil;
 import com.liferay.portal.shibboleth.util.ShibbolethPropsKeys;
 import com.liferay.portal.shibboleth.util.Util;
 import com.liferay.portal.util.PortalUtil;
-//import com.liferay.counter.service.CounterLocalServiceUtil;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-//import java.util.Date;
 import java.util.Locale;
 import java.util.Calendar;
 
 /**
- * Performs autologin based on the header values passed by Shibboleth. 
+ * Performs autologin based on the header values passed by Shibboleth.
  * 
- * The Shibboleth user ID header set in the configuration must contain the user ID, if users are authenticated by
- * screen name or the user email, if the users are authenticated by email (Portal settings --> Authentication -->
- * General).
+ * The Shibboleth user ID header set in the configuration must contain the user
+ * ID, if users are authenticated by screen name or the user email, if the users
+ * are authenticated by email (Portal settings --> Authentication --> General).
  * 
  * @author Romeo Sheshi
  * @author Ivan Novakov <ivan.novakov@debug.cz>
@@ -190,43 +182,6 @@ public class ShibbolethAutoLogin implements AutoLogin {
 
 		return user;
 	}
-
-	/*
-	 * private Contact createContactForUser(User user) throws Exception { long
-	 * contactId = CounterLocalServiceUtil.increment(Contact.class.getName());
-	 * 
-	 * Contact contact = ContactLocalServiceUtil.createContact(contactId);
-	 * contact.setCompanyId(user.getCompanyId()); contact.setCreateDate(new
-	 * Date()); contact.setModifiedDate(new Date());
-	 * contact.setUserName(user.getScreenName());
-	 * contact.setUserId(user.getUserId()); contact.setLastName("contact-" +
-	 * contact.getContactId()); contact.setFirstName("contact-" +
-	 * contact.getContactId());
-	 * 
-	 * ContactLocalServiceUtil.addContact(contact);
-	 * 
-	 * return contact; }
-	 */
-
-	/*
-	 * private Group createGroupForUser(User user) throws Exception { ClassName
-	 * clsNameUser =
-	 * ClassNameLocalServiceUtil.getClassName("com.liferay.portal.model.User");
-	 * long classNameId = clsNameUser.getClassNameId(); long userid[] =
-	 * {user.getUserId()};
-	 * 
-	 * long groupId = CounterLocalServiceUtil.increment(Group.class.getName());
-	 * 
-	 * Group userGrp = GroupLocalServiceUtil.createGroup(groupId);
-	 * userGrp.setClassNameId(classNameId); userGrp.setClassPK(userid[0]);
-	 * userGrp.setCompanyId(user.getCompanyId()); userGrp.setName("group" +
-	 * String.valueOf(userid[0])); userGrp.setFriendlyURL("/group" + groupId);
-	 * userGrp.setCreatorUserId(0); userGrp.setActive(true);
-	 * 
-	 * GroupLocalServiceUtil.addGroup(userGrp);
-	 * 
-	 * return userGrp; }
-	 */
 
 	private void updateUserFromSession(User user, HttpSession session) throws Exception {
 		boolean modified = false;

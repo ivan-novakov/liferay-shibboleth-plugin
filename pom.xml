@@ -5,8 +5,8 @@
     <groupId>com.github.ivan-novakov.liferay-shibboleth-plugin</groupId>
     <artifactId>liferay-shibboleth-plugin</artifactId>
     <packaging>war</packaging>
-    <name>liferay-shibboleth-plugin Hook</name>
-    <url>http://code.google.com/p/liferay-shibboleth-plugin/</url>
+    <name>liferay-shibboleth-plugin</name>
+    <url>https://github.com/ivan-novakov/liferay-shibboleth-plugin</url>
     <version>1.1</version>
     <properties>
         <liferay.auto.deploy.dir>/opt/lr/deploy</liferay.auto.deploy.dir>
