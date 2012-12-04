@@ -18,11 +18,17 @@ public class ShibbolethPropsValues {
     
     public static final String SHIBBOLETH_HEADER_SURNAME = PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_HEADER_SURNAME);
     
+    public static final String SHIBBOLETH_HEADER_AFFILIATION = PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_HEADER_AFFILIATION);
+    
     public static final boolean SHIBBOLETH_USER_AUTO_CREATE = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_USER_AUTO_CREATE));
     
     public static final boolean SHIBBOLETH_USER_AUTO_UPDATE = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_USER_AUTO_UPDATE));
 
     public static final boolean SHIBBOLETH_USER_LDAP_IMPORT = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_USER_LDAP_IMPORT));
+    
+    public static final boolean SHIBBOLETH_USER_ROLE_AUTO_ASSIGN = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_USER_ROLE_AUTO_ASSIGN));
+    
+    public static final String SHIBBOLETH_USER_ROLE_AUTO_ASSIGN_SUBTYPE = PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_USER_ROLE_AUTO_ASSIGN_SUBTYPE);
 
     public static final boolean SHIBBOLETH_LOGOUT_ENABLE = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_LOGOUT_ENABLE));
 

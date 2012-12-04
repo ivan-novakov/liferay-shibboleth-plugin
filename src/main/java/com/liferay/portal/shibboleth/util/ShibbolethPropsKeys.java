@@ -16,9 +16,15 @@ public class ShibbolethPropsKeys {
 
 	public static final String SHIBBOLETH_HEADER_SURNAME = "shibboleth.header.surname";
 
+	public static final String SHIBBOLETH_HEADER_AFFILIATION = "shibboleth.header.affiliation";
+
 	public static final String SHIBBOLETH_USER_AUTO_CREATE = "shibboleth.user.auto.create";
 
 	public static final String SHIBBOLETH_USER_AUTO_UPDATE = "shibboleth.user.auto.update";
+
+	public static final String SHIBBOLETH_USER_ROLE_AUTO_ASSIGN = "shibboleth.user.role.auto.assign";
+
+	public static final String SHIBBOLETH_USER_ROLE_AUTO_ASSIGN_SUBTYPE = "shibboleth.user.role.auto.assign.subtype";
 
 	public static final String SHIBBOLETH_LOGIN = "shibboleth.login";
 

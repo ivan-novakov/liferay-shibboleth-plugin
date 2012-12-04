@@ -1,14 +1,18 @@
 package com.liferay.portal.security.auth;
 
 import com.liferay.portal.NoSuchUserException;
+import com.liferay.portal.kernel.exception.PortalException;
+import com.liferay.portal.kernel.exception.SystemException;
 import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.CompanyConstants;
 import com.liferay.portal.model.User;
+import com.liferay.portal.model.Role;
 import com.liferay.portal.security.ldap.PortalLDAPImporterUtil;
 import com.liferay.portal.service.UserLocalServiceUtil;
+import com.liferay.portal.service.RoleLocalServiceUtil;
 import com.liferay.portal.service.ServiceContext;
 import com.liferay.portal.shibboleth.util.ShibbolethPropsKeys;
 import com.liferay.portal.shibboleth.util.Util;
@@ -18,6 +22,9 @@ import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
 import java.util.Locale;
 import java.util.Calendar;
+import java.util.Arrays;
+import java.util.List;
+import java.util.ArrayList;
 
 /**
  * Performs autologin based on the header values passed by Shibboleth.
@@ -97,7 +104,7 @@ public class ShibbolethAutoLogin implements AutoLogin {
 			}
 
 		} catch (NoSuchUserException e) {
-			_log.info("User not found");
+			_log.error("User not found");
 
 			if (Util.autoCreateUser(companyId)) {
 				_log.info("Importing user from session...");
@@ -107,6 +114,12 @@ public class ShibbolethAutoLogin implements AutoLogin {
 				_log.info("Importing user from LDAP...");
 				user = PortalLDAPImporterUtil.importLDAPUser(companyId, StringPool.BLANK, login);
 			}
+		}
+
+		try {
+			updateUserRolesFromSession(companyId, user, session);
+		} catch (Exception e) {
+			_log.error("Exception while updating user roles from session: " + e.getMessage());
 		}
 
 		return user;
@@ -213,7 +226,66 @@ public class ShibbolethAutoLogin implements AutoLogin {
 		UserLocalServiceUtil.updateUser(user);
 	}
 
-	public void logError(Exception e) {
+	private void updateUserRolesFromSession(long companyId, User user, HttpSession session) throws Exception {
+		if (!Util.autoAssignUserRole(companyId)) {
+			return;
+		}
+
+		List<Role> currentFelRoles = getRolesFromSession(companyId, session);
+		long[] currentFelRoleIds = roleListToLongArray(currentFelRoles);
+
+		List<Role> felRoles = getAllRolesWithConfiguredSubtype(companyId);
+		long[] felRoleIds = roleListToLongArray(felRoles);
+
+		RoleLocalServiceUtil.unsetUserRoles(user.getUserId(), felRoleIds);
+		RoleLocalServiceUtil.addUserRoles(user.getUserId(), currentFelRoleIds);
+
+		_log.info("User '" + user.getScreenName() + "' has been assigned " + currentFelRoleIds.length + " role(s): "
+				+ Arrays.toString(currentFelRoleIds));
+	}
+
+	private long[] roleListToLongArray(List<Role> roles) {
+		long[] roleIds = new long[roles.size()];
+
+		for (int i = 0; i < roles.size(); i++) {
+			roleIds[i] = roles.get(i).getRoleId();
+		}
+
+		return roleIds;
+	}
+
+	private List<Role> getAllRolesWithConfiguredSubtype(long companyId) throws Exception {
+		String roleSubtype = Util.autoAssignUserRoleSubtype(companyId);
+		return RoleLocalServiceUtil.getSubtypeRoles(roleSubtype);
+	}
+
+	private List<Role> getRolesFromSession(long companyId, HttpSession session) throws SystemException {
+		List<Role> currentFelRoles = new ArrayList<Role>();
+		String affiliation = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_AFFILIATION);
+
+		if (Validator.isNull(affiliation)) {
+			return currentFelRoles;
+		}
+
+		String[] affiliationList = affiliation.split(";");
+
+		for (int i = 0; i < affiliationList.length; i++) {
+			String roleName = affiliationList[i];
+			Role role;
+			try {
+				role = RoleLocalServiceUtil.getRole(companyId, roleName);
+			} catch (PortalException e) {
+				_log.debug("Exception while getting role with name '" + roleName + "': " + e.getMessage());
+				continue;
+			}
+
+			currentFelRoles.add(role);
+		}
+
+		return currentFelRoles;
+	}
+
+	private void logError(Exception e) {
 		_log.error("Exception message = " + e.getMessage() + " cause = " + e.getCause());
 		if (_log.isDebugEnabled()) {
 			e.printStackTrace();

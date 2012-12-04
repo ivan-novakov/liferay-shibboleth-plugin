@@ -63,6 +63,8 @@ public class ShibbolethFilter extends BaseFilter {
 						ShibbolethPropsKeys.SHIBBOLETH_HEADER_FIRSTNAME, false);
 				processHeader(Util.getSurnameHeaderName(companyId), request,
 						ShibbolethPropsKeys.SHIBBOLETH_HEADER_SURNAME, false);
+				processHeader(Util.getAffiliationHeaderName(companyId), request,
+						ShibbolethPropsKeys.SHIBBOLETH_HEADER_AFFILIATION, false);
 			}
 		}
 		processFilter(ShibbolethFilter.class, request, response, filterChain);
