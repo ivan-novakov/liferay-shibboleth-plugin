@@ -60,8 +60,76 @@ And require a Shibboleth session at the "login" location:
     </Location>
 
 
-Liferay AJP connector
+Container's AJP connector
 ---------------------
+
+Make sure, the backend servlet container has properly configured AJP connector. For example, in JBoss it is not enabled by default and you have to explicitly enable it:
+
+    # cd $JBOSS_HOME/bin
+    # ./jboss-cli.sh 
+    You are disconnected at the moment. Type 'connect' to connect to the server or 'help' for the list of supported commands.
+    [disconnected /] connect
+    [standalone@localhost:9999 /] /subsystem=web:read-children-names(child-type=connector)
+    {
+        "outcome" => "success",
+        "result" => ["http"]
+    }
+    [standalone@localhost:9999 /] /subsystem=web/connector=ajp:add(socket-binding=ajp, protocol="AJP/1.3", enabled=true, scheme=ajp)
+    {"outcome" => "success"}
+    [standalone@localhost:9999 /] /subsystem=web:read-children-names(child-type=connector)
+    {
+        "outcome" => "success",
+        "result" => [
+            "ajp",
+            "http" 
+        ]
+    }
+
+
+Plugin installation and configuration
+-------------------------------------
+
+Clone the repository and run the Maven install script:
+
+    # git clone https://github.com/ivan-novakov/liferay-shibboleth-plugin.git
+    # cd liferay-shibboleth-plugin
+    # mvn install
+
+Then deploy the WAR file to your servlet container.
+After a successful installation a new "Shibboleth" section appears in the Liferay's Control panel at "Portal Settings / Authentication". You can adjust Shibboleth authentication there. The most important setting is the name of the attribute from with the user identity is taken.
+At the same time, in "Portal Settings --> Authentication --> General" you must set "How do users authenticate?" to "By Screen Name" and disable all "Allow..." options.
+
+Further steps
+-------------
+
+Logging can be enabled at "Control panel --> Server Administration --> Log Levels" by adding these categories:
+
+    com.liferay.portal.security.auth.ShibbolethAutoLogin
+    com.liferay.portal.servlet.filters.sso.shibboleth.ShibbolethFilter
+    
+These settings will work untill server reboot only. To make them permanent you need to create a special configuration file placed at `$JBOSS_HOME/standalone/deployments/ROOT.war/WEB-INF/classes/META-INF/portal-log4j-ext.xml`:
+
+    <?xml version="1.0"?>
+    <!DOCTYPE log4j:configuration SYSTEM "log4j.dtd">
+    
+    <log4j:configuration xmlns:log4j="http://jakarta.apache.org/log4j/">
+    
+        <appender name="CONSOLE" class="org.apache.log4j.ConsoleAppender">
+            <layout class="org.apache.log4j.PatternLayout">
+                <param name="ConversionPattern" value="%d{ABSOLUTE} %-5p [%c{1}:%L] %m%n" />
+            </layout>
+        </appender>
+    
+        <category name="com.liferay.portal.security.auth.ShibbolethAutoLogin">
+            <priority value="INFO" />
+        </category>
+    
+        <category name="com.liferay.portal.servlet.filters.sso.shibboleth.ShibbolethFilter">
+            <priority value="INFO" />
+        </category>
+    
+    </log4j:configuration>
+
 
 
 Licence
