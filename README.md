@@ -102,6 +102,22 @@ At the same time, in "Portal Settings --> Authentication --> General" you must s
 Further steps
 -------------
 
+If you plan to use Shibboleth autehtnication only, it will be a good idea to prevent your users from changing their personal info (especially the screen name which holds the identity). 
+
+If you choose to auto-create users, you need to disable the "terms of use" page and the "security question", which appear to the new users. Add these directives to your portal-ext.properties:
+
+    #
+    # Set this to true to enable reminder queries that are used to help reset a
+    # user's password.
+    #
+    users.reminder.queries.enabled=false
+    users.reminder.queries.custom.question.enabled=false
+    
+    #
+    # Set this to true if all users are required to agree to the terms of use.
+    #
+    terms.of.use.required=false
+
 Logging can be enabled at "Control panel --> Server Administration --> Log Levels" by adding these categories:
 
     com.liferay.portal.security.auth.ShibbolethAutoLogin
