@@ -8,23 +8,20 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.util.StringPool;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.model.CompanyConstants;
-import com.liferay.portal.model.User;
 import com.liferay.portal.model.Role;
+import com.liferay.portal.model.User;
 import com.liferay.portal.security.ldap.PortalLDAPImporterUtil;
-import com.liferay.portal.service.UserLocalServiceUtil;
 import com.liferay.portal.service.RoleLocalServiceUtil;
 import com.liferay.portal.service.ServiceContext;
+import com.liferay.portal.service.UserLocalServiceUtil;
 import com.liferay.portal.shibboleth.util.ShibbolethPropsKeys;
 import com.liferay.portal.shibboleth.util.Util;
 import com.liferay.portal.util.PortalUtil;
+
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.util.Locale;
-import java.util.Calendar;
-import java.util.Arrays;
-import java.util.List;
-import java.util.ArrayList;
+import java.util.*;
 
 /**
  * Performs autologin based on the header values passed by Shibboleth.
@@ -40,257 +37,273 @@ public class ShibbolethAutoLogin implements AutoLogin {
 
 	private static Log _log = LogFactoryUtil.getLog(ShibbolethAutoLogin.class);
 
-	public String[] login(HttpServletRequest req, HttpServletResponse res) throws AutoLoginException {
+    @Override
+    public String[] handleException(HttpServletRequest request, HttpServletResponse response, Exception e) throws AutoLoginException {
+        // taken from BaseAutoLogin
+        if (Validator.isNull(request.getAttribute(AutoLogin.AUTO_LOGIN_REDIRECT))) {
+            throw new AutoLoginException(e);
+        }
+        _log.error(e, e);
+        return null;
+    }
 
-		User user = null;
-		String[] credentials = null;
-		HttpSession session = req.getSession(false);
-		long companyId = PortalUtil.getCompanyId(req);
-		String login = null;
+    @Override
+    public String[] login(HttpServletRequest req, HttpServletResponse res) throws AutoLoginException {
 
-		try {
-			_log.info("Shibboleth Autologin [modified 1]");
+        User user;
+        String[] credentials = null;
+        HttpSession session = req.getSession(false);
+        long companyId = PortalUtil.getCompanyId(req);
 
-			if (!Util.isEnabled(companyId)) {
-				return credentials;
-			}
 
-			user = loginFromSession(companyId, session);
-			if (Validator.isNull(user)) {
-				return credentials;
-			}
+        try {
+            _log.info("Shibboleth Autologin [modified 1]");
 
-			credentials = new String[3];
-			credentials[0] = String.valueOf(user.getUserId());
-			credentials[1] = user.getPassword();
-			credentials[2] = Boolean.TRUE.toString();
-			return credentials;
+            if (!Util.isEnabled(companyId)) {
+                return credentials;
+            }
 
-		} catch (NoSuchUserException e) {
-			logError(e);
-		} catch (Exception e) {
-			logError(e);
-			throw new AutoLoginException(e);
-		}
+            user = loginFromSession(companyId, session);
+            if (Validator.isNull(user)) {
+                return credentials;
+            }
 
-		return credentials;
-	}
+            credentials = new String[3];
+            credentials[0] = String.valueOf(user.getUserId());
+            credentials[1] = user.getPassword();
+            credentials[2] = Boolean.TRUE.toString();
+            return credentials;
 
-	private User loginFromSession(long companyId, HttpSession session) throws Exception {
-		String login = null;
-		User user = null;
+        } catch (NoSuchUserException e) {
+            logError(e);
+        } catch (Exception e) {
+            logError(e);
+            throw new AutoLoginException(e);
+        }
 
-		login = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_LOGIN);
-		if (Validator.isNull(login)) {
-			return null;
-		}
+        return credentials;
+    }
 
-		String authType = Util.getAuthType(companyId);
+    private User loginFromSession(long companyId, HttpSession session) throws Exception {
+        String login;
+        User user = null;
 
-		try {
-			if (authType.equals(CompanyConstants.AUTH_TYPE_SN)) {
-				_log.info("Trying to find user with screen name: " + login);
-				user = UserLocalServiceUtil.getUserByScreenName(companyId, login);
-			} else if (authType.equals(CompanyConstants.AUTH_TYPE_EA)) {
-				_log.info("Trying to find user with email: " + login);
-				user = UserLocalServiceUtil.getUserByEmailAddress(companyId, login);
-			}
+        login = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_LOGIN);
+        if (Validator.isNull(login)) {
+            return null;
+        }
 
-			_log.info("User found: " + user.getScreenName() + " (" + user.getEmailAddress() + ")");
+        String authType = Util.getAuthType(companyId);
 
-			if (Util.autoUpdateUser(companyId)) {
-				_log.info("Auto-updating user...");
-				updateUserFromSession(user, session);
-			}
+        try {
+            if (authType.equals(CompanyConstants.AUTH_TYPE_SN)) {
+                _log.info("Trying to find user with screen name: " + login);
+                user = UserLocalServiceUtil.getUserByScreenName(companyId, login);
+            } else if (authType.equals(CompanyConstants.AUTH_TYPE_EA)) {
+                _log.info("Trying to find user with email: " + login);
+                user = UserLocalServiceUtil.getUserByEmailAddress(companyId, login);
+            } else {
+                throw new NoSuchUserException();
+            }
 
-		} catch (NoSuchUserException e) {
-			_log.error("User not found");
+            _log.info("User found: " + user.getScreenName() + " (" + user.getEmailAddress() + ")");
 
-			if (Util.autoCreateUser(companyId)) {
-				_log.info("Importing user from session...");
-				user = createUserFromSession(companyId, session);
-				_log.info("Created user with ID: " + user.getUserId());
-			} else if (Util.importUser(companyId)) {
-				_log.info("Importing user from LDAP...");
-				user = PortalLDAPImporterUtil.importLDAPUser(companyId, StringPool.BLANK, login);
-			}
-		}
+            if (Util.autoUpdateUser(companyId)) {
+                _log.info("Auto-updating user...");
+                updateUserFromSession(user, session);
+            }
 
-		try {
-			updateUserRolesFromSession(companyId, user, session);
-		} catch (Exception e) {
-			_log.error("Exception while updating user roles from session: " + e.getMessage());
-		}
+        } catch (NoSuchUserException e) {
+            _log.error("User "  + login + " not found");
 
-		return user;
-	}
+            if (Util.autoCreateUser(companyId)) {
+                _log.info("Importing user from session...");
+                user = createUserFromSession(companyId, session);
+                _log.info("Created user with ID: " + user.getUserId());
+            } else if (Util.importUser(companyId)) {
+                _log.info("Importing user from LDAP...");
+                user = PortalLDAPImporterUtil.importLDAPUser(companyId, StringPool.BLANK, login);
+            }
+        }
 
-	private User createUserFromSession(long companyId, HttpSession session) throws Exception {
-		User user = null;
+        try {
+            updateUserRolesFromSession(companyId, user, session);
+        } catch (Exception e) {
+            _log.error("Exception while updating user roles from session: " + e.getMessage());
+        }
 
-		String screenName = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_LOGIN);
-		if (Validator.isNull(screenName)) {
-			_log.error("Cannot create user - missing screen name");
-			return user;
-		}
+        return user;
+    }
 
-		String emailAddress = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_EMAIL);
-		if (Validator.isNull(emailAddress)) {
-			_log.error("Cannot create user - missing email");
-			return user;
-		}
+    /**
+     * Create user from session
+     */
+    protected User createUserFromSession(long companyId, HttpSession session) throws Exception {
+        User user = null;
 
-		String firstname = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_FIRSTNAME);
-		if (Validator.isNull(firstname)) {
-			_log.error("Cannot create user - missing firstname");
-			return user;
-		}
+        String screenName = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_LOGIN);
+        if (Validator.isNull(screenName)) {
+            _log.error("Cannot create user - missing screen name");
+            return user;
+        }
 
-		String surname = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_SURNAME);
-		if (Validator.isNull(surname)) {
-			_log.error("Cannot create user - missing surname");
-			return user;
-		}
+        String emailAddress = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_EMAIL);
+        if (Validator.isNull(emailAddress)) {
+            _log.error("Cannot create user - missing email");
+            return user;
+        }
 
-		_log.info("Creating user: screen name = [" + screenName + "], emailAddress = [" + emailAddress
-				+ "], first name = [" + firstname + "], surname = [" + surname + "]");
+        String firstname = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_FIRSTNAME);
+        if (Validator.isNull(firstname)) {
+            _log.error("Cannot create user - missing firstname");
+            return user;
+        }
 
-		user = addUser(companyId, screenName, emailAddress, firstname, surname);
+        String surname = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_SURNAME);
+        if (Validator.isNull(surname)) {
+            _log.error("Cannot create user - missing surname");
+            return user;
+        }
 
-		return user;
-	}
+        _log.info("Creating user: screen name = [" + screenName + "], emailAddress = [" + emailAddress
+                + "], first name = [" + firstname + "], surname = [" + surname + "]");
 
-	private User addUser(long companyId, String screenName, String emailAddress, String firstName, String lastName)
-			throws Exception {
+        return addUser(companyId, screenName, emailAddress, firstname, surname);
+    }
 
-		long creatorUserId = 0;
-		boolean autoPassword = true;
-		String password1 = null;
-		String password2 = null;
-		boolean autoScreenName = false;
-		long facebookId = 0;
-		String openId = StringPool.BLANK;
-		Locale locale = Locale.US;
-		String middleName = StringPool.BLANK;
-		int prefixId = 0;
-		int suffixId = 0;
-		boolean male = true;
-		int birthdayMonth = Calendar.JANUARY;
-		int birthdayDay = 1;
-		int birthdayYear = 1970;
-		String jobTitle = StringPool.BLANK;
+    /**
+     * Store user
+     */
+    private User addUser(long companyId, String screenName, String emailAddress, String firstName, String lastName)
+            throws Exception {
 
-		long[] groupIds = null;
-		long[] organizationIds = null;
-		long[] roleIds = null;
-		long[] userGroupIds = null;
+        long creatorUserId = 0;
+        boolean autoPassword = true;
+        String password1 = null;
+        String password2 = null;
+        boolean autoScreenName = false;
+        long facebookId = 0;
+        String openId = StringPool.BLANK;
+        Locale locale = Locale.US;
+        String middleName = StringPool.BLANK;
+        int prefixId = 0;
+        int suffixId = 0;
+        boolean male = true;
+        int birthdayMonth = Calendar.JANUARY;
+        int birthdayDay = 1;
+        int birthdayYear = 1970;
+        String jobTitle = StringPool.BLANK;
 
-		boolean sendEmail = false;
-		ServiceContext serviceContext = null;
+        long[] groupIds = null;
+        long[] organizationIds = null;
+        long[] roleIds = null;
+        long[] userGroupIds = null;
 
-		User user = UserLocalServiceUtil.addUser(creatorUserId, companyId, autoPassword, password1, password2,
-				autoScreenName, screenName, emailAddress, facebookId, openId, locale, firstName, middleName, lastName,
-				prefixId, suffixId, male, birthdayMonth, birthdayDay, birthdayYear, jobTitle, groupIds,
-				organizationIds, roleIds, userGroupIds, sendEmail, serviceContext);
+        boolean sendEmail = false;
+        ServiceContext serviceContext = null;
 
-		return user;
-	}
+        return UserLocalServiceUtil.addUser(creatorUserId, companyId, autoPassword, password1, password2,
+                autoScreenName, screenName, emailAddress, facebookId, openId, locale, firstName, middleName, lastName,
+                prefixId, suffixId, male, birthdayMonth, birthdayDay, birthdayYear, jobTitle, groupIds,
+                organizationIds, roleIds, userGroupIds, sendEmail, serviceContext);
+    }
 
-	private void updateUserFromSession(User user, HttpSession session) throws Exception {
-		boolean modified = false;
+    protected void updateUserFromSession(User user, HttpSession session) throws Exception {
+        boolean modified = false;
 
-		String emailAddress = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_EMAIL);
-		if (!Validator.isNull(emailAddress) && !user.getEmailAddress().equals(emailAddress)) {
-			_log.info("User [" + user.getScreenName() + "]: update email address [" + user.getEmailAddress()
-					+ "] --> [" + emailAddress + "]");
-			user.setEmailAddress(emailAddress);
-			modified = true;
-		}
+        String emailAddress = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_EMAIL);
+        if (Validator.isNotNull(emailAddress) && !user.getEmailAddress().equals(emailAddress)) {
+            _log.info("User [" + user.getScreenName() + "]: update email address [" + user.getEmailAddress()
+                    + "] --> [" + emailAddress + "]");
+            user.setEmailAddress(emailAddress);
+            modified = true;
+        }
 
-		String firstname = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_FIRSTNAME);
-		if (!Validator.isNull(firstname) && !user.getFirstName().equals(firstname)) {
-			_log.info("User [" + user.getScreenName() + "]: update first name [" + user.getFirstName() + "] --> ["
-					+ firstname + "]");
-			user.setFirstName(firstname);
-			modified = true;
-		}
+        String firstname = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_FIRSTNAME);
+        if (Validator.isNotNull(firstname) && !user.getFirstName().equals(firstname)) {
+            _log.info("User [" + user.getScreenName() + "]: update first name [" + user.getFirstName() + "] --> ["
+                    + firstname + "]");
+            user.setFirstName(firstname);
+            modified = true;
+        }
 
-		String surname = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_SURNAME);
-		if (!Validator.isNull(surname) && !user.getLastName().equals(surname)) {
-			_log.info("User [" + user.getScreenName() + "]: update last name [" + user.getLastName() + "] --> ["
-					+ surname + "]");
-			user.setLastName(surname);
-			modified = true;
-		}
+        String surname = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_SURNAME);
+        if (Validator.isNotNull(surname) && !user.getLastName().equals(surname)) {
+            _log.info("User [" + user.getScreenName() + "]: update last name [" + user.getLastName() + "] --> ["
+                    + surname + "]");
+            user.setLastName(surname);
+            modified = true;
+        }
 
-		UserLocalServiceUtil.updateUser(user);
-	}
+        if (modified) {
+            UserLocalServiceUtil.updateUser(user);
+        }
+    }
 
-	private void updateUserRolesFromSession(long companyId, User user, HttpSession session) throws Exception {
-		if (!Util.autoAssignUserRole(companyId)) {
-			return;
-		}
+    private void updateUserRolesFromSession(long companyId, User user, HttpSession session) throws Exception {
+        if (!Util.autoAssignUserRole(companyId)) {
+            return;
+        }
 
-		List<Role> currentFelRoles = getRolesFromSession(companyId, session);
-		long[] currentFelRoleIds = roleListToLongArray(currentFelRoles);
+        List<Role> currentFelRoles = getRolesFromSession(companyId, session);
+        long[] currentFelRoleIds = roleListToLongArray(currentFelRoles);
 
-		List<Role> felRoles = getAllRolesWithConfiguredSubtype(companyId);
-		long[] felRoleIds = roleListToLongArray(felRoles);
+        List<Role> felRoles = getAllRolesWithConfiguredSubtype(companyId);
+        long[] felRoleIds = roleListToLongArray(felRoles);
 
-		RoleLocalServiceUtil.unsetUserRoles(user.getUserId(), felRoleIds);
-		RoleLocalServiceUtil.addUserRoles(user.getUserId(), currentFelRoleIds);
+        RoleLocalServiceUtil.unsetUserRoles(user.getUserId(), felRoleIds);
+        RoleLocalServiceUtil.addUserRoles(user.getUserId(), currentFelRoleIds);
 
-		_log.info("User '" + user.getScreenName() + "' has been assigned " + currentFelRoleIds.length + " role(s): "
-				+ Arrays.toString(currentFelRoleIds));
-	}
+        _log.info("User '" + user.getScreenName() + "' has been assigned " + currentFelRoleIds.length + " role(s): "
+                + Arrays.toString(currentFelRoleIds));
+    }
 
-	private long[] roleListToLongArray(List<Role> roles) {
-		long[] roleIds = new long[roles.size()];
+    private long[] roleListToLongArray(List<Role> roles) {
+        long[] roleIds = new long[roles.size()];
 
-		for (int i = 0; i < roles.size(); i++) {
-			roleIds[i] = roles.get(i).getRoleId();
-		}
+        for (int i = 0; i < roles.size(); i++) {
+            roleIds[i] = roles.get(i).getRoleId();
+        }
 
-		return roleIds;
-	}
+        return roleIds;
+    }
 
-	private List<Role> getAllRolesWithConfiguredSubtype(long companyId) throws Exception {
-		String roleSubtype = Util.autoAssignUserRoleSubtype(companyId);
-		return RoleLocalServiceUtil.getSubtypeRoles(roleSubtype);
-	}
+    private List<Role> getAllRolesWithConfiguredSubtype(long companyId) throws Exception {
+        String roleSubtype = Util.autoAssignUserRoleSubtype(companyId);
+        return RoleLocalServiceUtil.getSubtypeRoles(roleSubtype);
+    }
 
-	private List<Role> getRolesFromSession(long companyId, HttpSession session) throws SystemException {
-		List<Role> currentFelRoles = new ArrayList<Role>();
-		String affiliation = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_AFFILIATION);
+    private List<Role> getRolesFromSession(long companyId, HttpSession session) throws SystemException {
+        List<Role> currentFelRoles = new ArrayList<Role>();
+        String affiliation = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_AFFILIATION);
 
-		if (Validator.isNull(affiliation)) {
-			return currentFelRoles;
-		}
+        if (Validator.isNull(affiliation)) {
+            return currentFelRoles;
+        }
 
-		String[] affiliationList = affiliation.split(";");
+        String[] affiliationList = affiliation.split(";");
 
-		for (int i = 0; i < affiliationList.length; i++) {
-			String roleName = affiliationList[i];
-			Role role;
-			try {
-				role = RoleLocalServiceUtil.getRole(companyId, roleName);
-			} catch (PortalException e) {
-				_log.debug("Exception while getting role with name '" + roleName + "': " + e.getMessage());
-				continue;
-			}
+        for (String roleName : affiliationList) {
+            Role role;
+            try {
+                role = RoleLocalServiceUtil.getRole(companyId, roleName);
+            } catch (PortalException e) {
+                _log.debug("Exception while getting role with name '" + roleName + "': " + e.getMessage());
+                continue;
+            }
 
-			currentFelRoles.add(role);
-		}
+            currentFelRoles.add(role);
+        }
 
-		return currentFelRoles;
-	}
+        return currentFelRoles;
+    }
 
-	private void logError(Exception e) {
-		_log.error("Exception message = " + e.getMessage() + " cause = " + e.getCause());
-		if (_log.isDebugEnabled()) {
-			e.printStackTrace();
-		}
+    private void logError(Exception e) {
+        _log.error("Exception message = " + e.getMessage() + " cause = " + e.getCause());
+        if (_log.isDebugEnabled()) {
+            _log.error(e);
+        }
 
-	}
+    }
 
 }

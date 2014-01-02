@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plugin-package PUBLIC "-//Liferay//DTD Plugin Package 6.2.0//EN"
+        "http://www.liferay.com/dtd/liferay-plugin-package_6_2_0.dtd">
+<plugin-package>
+    <name>Shibboleth Plugin</name>
+    <module-id>${project.groupId}/${project.artifactId}/${project.version}/${project.packaging}</module-id>
+    <types>
+        <type>portlets</type>
+    </types>
+    <tags>
+        <tag>shibboleth</tag>
+    </tags>
+    <short-description/>
+    <change-log/>
+    <page-url>https://github.com/ivan-novakov/liferay-shibboleth-plugin</page-url>
+    <author>Ivan Novakov ivan.novakov@debug.cz</author>
+    <licenses>
+        <license osi-approved="true">LGPL</license>
+    </licenses>
+    <liferay-versions>
+        <liferay-version>6.2.0+</liferay-version>
+    </liferay-versions>
+</plugin-package>
