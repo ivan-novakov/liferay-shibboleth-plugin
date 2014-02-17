@@ -4,8 +4,8 @@ import com.liferay.portal.kernel.log.Log;
 import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.servlet.BaseFilter;
 import com.liferay.portal.kernel.util.Validator;
-import com.liferay.portal.security.auth.ScreenNameValidator;
 import com.liferay.portal.shibboleth.util.ShibbolethPropsKeys;
+import com.liferay.portal.shibboleth.util.SpecCharHack;
 import com.liferay.portal.shibboleth.util.Util;
 import com.liferay.portal.util.PortalUtil;
 
@@ -42,7 +42,9 @@ public class ShibbolethFilter extends BaseFilter {
     protected void processFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws Exception {
 
-        _log.info("Shibboleth filter");
+        _log.info("Shibboleth filter... enforcing UTF-8");
+        
+        request.setCharacterEncoding("UTF-8");
 
         String pathInfo = request.getPathInfo();
         HttpSession session = request.getSession();
@@ -74,9 +76,11 @@ public class ShibbolethFilter extends BaseFilter {
 
             String aaiProvidedEmail = getHeader(Util.getEmailHeaderName(companyId), request);
 
-            String aaiProvidedFirstname = getHeader(Util.getFirstnameHeaderName(companyId), request);
+            SpecCharHack sch = new SpecCharHack();
+            
+            String aaiProvidedFirstname = sch.fixChars(getHeader(Util.getFirstnameHeaderName(companyId), request));
 
-            String aaiProvidedSurname = getHeader(Util.getSurnameHeaderName(companyId), request);
+            String aaiProvidedSurname = sch.fixChars(getHeader(Util.getSurnameHeaderName(companyId), request));
 
             String aaiProvidedAffiliation = getHeader(Util.getAffiliationHeaderName(companyId), request);
 
@@ -139,25 +143,33 @@ public class ShibbolethFilter extends BaseFilter {
                 _log.debug("No affiliation provided");
                 aaiProvidedAffiliation = "";
             }
-            // AAI-provided affiliation is multi-valued
-            if (aaiProvidedAffiliation.contains(";")) {
-                _log.info("AAI-provided affiliation is multi-valued:"
-                        +aaiProvidedAffiliation
-                        +" Using the first value");
-                String[] affiliations = aaiProvidedAffiliation.split(";");
-                aaiProvidedAffiliation = affiliations[0];
-            }
             if (aaiProvidedAffiliation.contains(":")) {
                 _log.info("affiliation contains ':' characters: "
-                        +aaiProvidedAffiliation
-                        +" assuming eduPersonEntitlement format");
-                String[] parts = aaiProvidedAffiliation.split(":");
-                aaiProvidedAffiliation = parts[parts.length - 1];
+                        + aaiProvidedAffiliation
+                        + " assuming eduPersonEntitlement format");
+                // AAI-provided affiliation is multi-valued
+                if (aaiProvidedAffiliation.contains(";")) {
+                    _log.info("AAI-provided affiliation is multi-valued:"
+                            + aaiProvidedAffiliation
+                            + " Processing each vale");
+                    String[] affiliations = aaiProvidedAffiliation.split(";");
+                    aaiProvidedAffiliation = "";
+
+                    for (int i = 0; i < affiliations.length; i++) {
+                        aaiProvidedAffiliation += affiliations[i];
+                        if (i < affiliations.length - 1) {
+                            aaiProvidedAffiliation += ";";
+                        }
+                    }
+
+                } else {
+                    String[] parts = aaiProvidedAffiliation.split(":");
+                    aaiProvidedAffiliation = parts[parts.length - 1];
+                }
             }
             _log.info("AAI-provided affiliation is:" + aaiProvidedAffiliation);
             session.setAttribute(ShibbolethPropsKeys.SHIBBOLETH_HEADER_AFFILIATION, aaiProvidedAffiliation);
-            
-            
+
             return true;
         } else {
             return false;
