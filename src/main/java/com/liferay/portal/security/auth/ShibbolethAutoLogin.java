@@ -57,7 +57,7 @@ public class ShibbolethAutoLogin implements AutoLogin {
 
 
         try {
-            _log.info("Shibboleth Autologin [modified by mheder v0.2]");
+            _log.info("Shibboleth Autologin [modified 2]");
 
             if (!Util.isEnabled(companyId)) {
                 return credentials;

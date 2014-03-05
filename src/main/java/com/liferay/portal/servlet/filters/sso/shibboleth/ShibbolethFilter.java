@@ -41,10 +41,8 @@ public class ShibbolethFilter extends BaseFilter {
     protected void processFilter(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws Exception {
 
-        _log.info("Shibboleth filter... enforcing UTF-8");
+        _log.info("Shibboleth filter");
         
-        request.setCharacterEncoding("UTF-8");
-
         String pathInfo = request.getPathInfo();
         HttpSession session = request.getSession();
         long companyId = PortalUtil.getCompanyId(request);
@@ -74,8 +72,6 @@ public class ShibbolethFilter extends BaseFilter {
             String aaiProvidedLoginName = getHeader(Util.getHeaderName(companyId), request);
 
             String aaiProvidedEmail = getHeader(Util.getEmailHeaderName(companyId), request);
-
-      
             
             String aaiProvidedFirstname = getHeader(Util.getFirstnameHeaderName(companyId), request);
 
