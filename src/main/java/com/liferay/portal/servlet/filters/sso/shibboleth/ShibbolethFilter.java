@@ -5,7 +5,6 @@ import com.liferay.portal.kernel.log.LogFactoryUtil;
 import com.liferay.portal.kernel.servlet.BaseFilter;
 import com.liferay.portal.kernel.util.Validator;
 import com.liferay.portal.shibboleth.util.ShibbolethPropsKeys;
-import com.liferay.portal.shibboleth.util.SpecCharHack;
 import com.liferay.portal.shibboleth.util.Util;
 import com.liferay.portal.util.PortalUtil;
 
@@ -76,11 +75,11 @@ public class ShibbolethFilter extends BaseFilter {
 
             String aaiProvidedEmail = getHeader(Util.getEmailHeaderName(companyId), request);
 
-            SpecCharHack sch = new SpecCharHack();
+      
             
-            String aaiProvidedFirstname = sch.fixChars(getHeader(Util.getFirstnameHeaderName(companyId), request));
+            String aaiProvidedFirstname = getHeader(Util.getFirstnameHeaderName(companyId), request);
 
-            String aaiProvidedSurname = sch.fixChars(getHeader(Util.getSurnameHeaderName(companyId), request));
+            String aaiProvidedSurname = getHeader(Util.getSurnameHeaderName(companyId), request);
 
             String aaiProvidedAffiliation = getHeader(Util.getAffiliationHeaderName(companyId), request);
 
