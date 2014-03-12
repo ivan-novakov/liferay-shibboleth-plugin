@@ -42,7 +42,7 @@ public class ShibbolethFilter extends BaseFilter {
             throws Exception {
 
         _log.info("Shibboleth filter");
-        
+
         String pathInfo = request.getPathInfo();
         HttpSession session = request.getSession();
         long companyId = PortalUtil.getCompanyId(request);
@@ -61,7 +61,7 @@ public class ShibbolethFilter extends BaseFilter {
     }
 
     /**
-     * Extracts user data from AJP header
+     * Extracts user data from AJP or HTTP header
      *
      * @return true if any data is present
      */
@@ -69,39 +69,54 @@ public class ShibbolethFilter extends BaseFilter {
         String login = (String) session.getAttribute(ShibbolethPropsKeys.SHIBBOLETH_LOGIN);
         if (Validator.isNull(login)) {
 
-            String aaiProvidedLoginName = getHeader(Util.getHeaderName(companyId), request);
+            boolean headersEnabled = Util.isHeadersEnabled(companyId);
 
-            String aaiProvidedEmail = getHeader(Util.getEmailHeaderName(companyId), request);
-            
-            String aaiProvidedFirstname = getHeader(Util.getFirstnameHeaderName(companyId), request);
+            if (headersEnabled) {
+                _log.info("Using HTTP headers as source for attribute values");
+            } else {
+                _log.info("Using Environment variables as source for attribute values");
+            }
 
-            String aaiProvidedSurname = getHeader(Util.getSurnameHeaderName(companyId), request);
+            String aaiProvidedLoginName = getHeader(Util.getHeaderName(companyId), request, headersEnabled);
 
-            String aaiProvidedAffiliation = getHeader(Util.getAffiliationHeaderName(companyId), request);
+            String aaiProvidedEmail = getHeader(Util.getEmailHeaderName(companyId), request, headersEnabled);
+
+            String aaiProvidedFirstname = getHeader(Util.getFirstnameHeaderName(companyId), request, headersEnabled);
+
+            String aaiProvidedSurname = getHeader(Util.getSurnameHeaderName(companyId), request, headersEnabled);
+
+            String aaiProvidedAffiliation = getHeader(Util.getAffiliationHeaderName(companyId), request, headersEnabled);
 
             if (Validator.isNull(aaiProvidedLoginName)) {
                 _log.error("Required header [" + Util.getHeaderName(companyId) + "] not found");
                 _log.error("AAI authentication failed as login name header is empty.");
                 return false;
             }
-            //check validity of screen name 
-            if (Validator.isEmailAddress(aaiProvidedLoginName)) {
-                // most probably it is an eduPersonPrincipalName. Make transformations
-                _log.info("The login name provided by AAI looks like an "
-                        + "email (or eduPersonPrincipalName): "
-                        + aaiProvidedLoginName
-                        + " It needs to be converted to be a Liferay screen name.");
-                aaiProvidedLoginName = aaiProvidedLoginName.replaceAll("@", ".at.");
-                _log.info("Login name is converted to:" + aaiProvidedLoginName);
+            if (Util.isScreenNameTransformEnabled(companyId)) {
+                _log.info("ScreenName transform is enabled.");
+                //check validity of screen name 
+                if (Validator.isEmailAddress(aaiProvidedLoginName)) {
+                    // most probably it is an eduPersonPrincipalName. Make transformations
+                    _log.info("The login name provided by AAI looks like an "
+                            + "email (or eduPersonPrincipalName): "
+                            + aaiProvidedLoginName
+                            + " It needs to be converted to be a Liferay screen name.");
+                    aaiProvidedLoginName = aaiProvidedLoginName.replaceAll("@", ".at.");
+                    _log.info("Login name is converted to:" + aaiProvidedLoginName);
+                }
+                //Liferay does not like underscores
+                if (aaiProvidedLoginName.contains("_")) {
+                    _log.info("The login name provided by AAI contains underscores:"
+                            + aaiProvidedLoginName
+                            + "It needs to be converted to be a Liferay screen name.");
+                    aaiProvidedLoginName = aaiProvidedLoginName.replaceAll("_", "-");
+                    _log.info("Login name is converted to:" + aaiProvidedLoginName);
+                }
             }
-            //Liferay does not like underscores
-            if (aaiProvidedLoginName.contains("_")) {
-                _log.info("The login name provided by AAI contains underscores:"
-                        + aaiProvidedLoginName
-                        + "It needs to be converted to be a Liferay screen name.");
-                aaiProvidedLoginName = aaiProvidedLoginName.replaceAll("_", "-");
-                _log.info("Login name is converted to:" + aaiProvidedLoginName);
+            else {
+                _log.info("ScreenName transform is disabled.");
             }
+            
             _log.info("AAI-provided screen name is:" + aaiProvidedLoginName);
             session.setAttribute(ShibbolethPropsKeys.SHIBBOLETH_LOGIN, aaiProvidedLoginName);
 
@@ -138,7 +153,7 @@ public class ShibbolethFilter extends BaseFilter {
                 _log.debug("No affiliation provided");
                 aaiProvidedAffiliation = "";
             }
-            if (aaiProvidedAffiliation.contains(":")) {
+            if (Util.isAffiliationTruncateEnabled(companyId) && aaiProvidedAffiliation.contains(":")) {
                 _log.info("affiliation contains ':' characters: "
                         + aaiProvidedAffiliation
                         + " assuming eduPersonEntitlement format");
@@ -171,11 +186,18 @@ public class ShibbolethFilter extends BaseFilter {
         }
     }
 
-    protected String getHeader(String headerName, HttpServletRequest request) {
+    protected String getHeader(String headerName, HttpServletRequest request, boolean headersEnabled) {
         if (Validator.isNull(headerName)) {
             return null;
         }
-        String headerValue = (String) request.getHeader(headerName);
+        String headerValue;
+
+        if (headersEnabled) {
+            headerValue = request.getHeader(headerName);
+        } else {
+            headerValue = (String) request.getAttribute(headerName);
+        }
+
         _log.info("Header [" + headerName + "]: " + headerValue);
 
         return headerValue;
