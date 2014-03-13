@@ -25,16 +25,6 @@ The protected application must not be accessible directly, it must be run on a p
 requests, and after performing all authentication related tasks, it will pass the request to the backend servlet
 container using AJP (Apache JServ Protocol).
 
-Shibboleth Service Provider
----------------------------
-
-A standard Shibboleth Service Provider instance may be used with one difference - the attribute preffix must bes
-set to "AJP_", otherwise user attributes from Shibboleh will not be accessible in the application.
-
-    <ApplicationDefaults entityID="https://liferay-test/shibboleth"
-        REMOTE_USER="uid eppn persistent-id targeted-id" 
-        attributePrefix="AJP_">
-
 
 Apache configuration
 --------------------
@@ -59,6 +49,28 @@ And require a Shibboleth session at the "login" location:
         require valid-user
     </Location>
 
+Shibboleth Service Provider
+---------------------------
+
+A standard Shibboleth Service Provider instance may be used with one difference - the attribute preffix must bes
+set to "AJP_", otherwise user attributes from Shibboleh will not be accessible in the application.
+
+    <ApplicationDefaults entityID="https://liferay-test/shibboleth"
+        REMOTE_USER="uid eppn persistent-id targeted-id" 
+        attributePrefix="AJP_">
+        
+Alternatively, if for some reason it is not possible to extract attributes from the environment, the Liferay Shibboleth plugin can extract them from the HTTP headers. To achieve that you have to enable headers passing via the `ShibUseHeaders` in the [Apache configuration](https://wiki.shibboleth.net/confluence/display/SHIB2/NativeSPApacheConfig):
+
+    <Location /c/portal/login>
+        AuthType shibboleth
+        ShibRequireSession On
+        ShibUseHeaders On
+        require valid-user
+    </Location>
+
+Then, in the plugin's configuration you need to check the *Extract attributes from HTTP Headers* option.
+
+**Note:** Extracting attributes from the HTTP headers is considered less secure and you should use the environment variables whenever possible. If you enable the `ShibUseHeaders` option, be sure to read about [spoof checking](https://wiki.shibboleth.net/confluence/display/SHIB2/NativeSPSpoofChecking).
 
 Container's AJP connector
 ---------------------
