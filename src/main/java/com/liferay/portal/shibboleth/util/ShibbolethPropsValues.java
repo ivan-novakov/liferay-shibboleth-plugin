@@ -32,6 +32,12 @@ public class ShibbolethPropsValues {
 
     public static final boolean SHIBBOLETH_LOGOUT_ENABLE = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_LOGOUT_ENABLE));
 
+    public static final boolean SHIBBOLETH_HEADERS_ENABLE = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_HEADERS_ENABLE));
+
+    public static final boolean SHIBBOLETH_AFFILIATION_TRUNCATE_ENABLE = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_AFFILIATION_TRUNCATE_ENABLE));
+
+    public static final boolean SHIBBOLETH_SCREENNAME_TRANSFORM_ENABLE = GetterUtil.getBoolean(PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_SCREENNAME_TRANSFORM_ENABLE));
+
     public static final String SHIBBOLETH_LOGOUT_URL = PropsUtil.get(ShibbolethPropsKeys.SHIBBOLETH_LOGOUT_URL);
 
 }
