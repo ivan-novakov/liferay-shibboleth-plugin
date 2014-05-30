@@ -1,11 +1,12 @@
 Shibboleth Authentication Plugin for Liferay
 ============================================
 
-**Important note:** I'm no longer maintaining this repo partly due to lack of time, but mostly because I'm not using Liferay anymore. Instead, please use the [cloned repo](https://github.com/mheder/liferay-shibboleth-plugin) by @mheder who kindly agreed to continue improving and maintaining this plugin:
+**Important note:** I'm no longer maintaining this repo partly due to lack of time, but mostly because I'm not using Liferay anymore. Instead, please use the [cloned repo](https://github.com/mheder/liferay-shibboleth-plugin) by [@mheder](https://github.com/mheder) who kindly agreed to continue improving and maintaining this plugin:
 
 * https://github.com/mheder/liferay-shibboleth-plugin
 
 ---------- 
+
 
 This plugin is an extended version of the plugin by rsheshi@gmail.com (see below).
 
